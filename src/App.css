@@ -1,0 +1,146 @@
+:root {
+  --page-bg-colour: #1e293bf5;
+  --surface-bg-colour: #1e293bf5;
+  --surface-text-colour: white;
+  --surface-control-colour: #10172a;
+  --surface-control-border: #2c385a;
+  --surface-control-hover: #9da4af;
+}
+
+body {
+  background-color: var(--page-bg-colour);
+}
+
+.sidebar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  background-color: var(--surface-bg-colour);
+  display: flex;
+  z-index: 1000;
+}
+
+.sidebar[open] {
+  width: clamp(250px, 22vw, 450px);
+}
+
+.sidebar textarea {
+  height: 100%;
+  width: calc(100% - 16px);
+  font-size: 16px;
+  padding: 8px;
+  background-color: transparent;
+  opacity: 0.3;
+  margin: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  border: none;
+  resize: none;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  color: var(--surface-text-colour);
+}
+
+.sidebar textarea:focus {
+  outline: none;
+  opacity: 1;
+}
+
+.sidebar summary {
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-control-colour);
+  color: #555;
+  display: flex;
+  width: 16px;
+  height: 100%;
+  border-left: 1px solid #0000003b;
+  border-right: 1px solid #0000003b;
+}
+.sidebar summary:hover {
+  background-color: #ccc;
+  color: #333;
+}
+
+.sidebar summary .summary-text {
+  font-size: 22px;
+}
+
+.sidebar[open] .summary-text {
+  transform: rotate(180deg);
+}
+
+.wheel {
+  width: 100vw;
+  height: 100vh;
+}
+
+.wheel__circle {
+  transform-origin: center;
+}
+
+.wheel__pointer {
+  transform: translate(13px, 17px) rotate(-45deg);
+}
+
+.wheel__text {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.wheel-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+.controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.controls__button {
+  background-color: var(--surface-control-colour);
+  color: var(--surface-text-colour);
+  border: 1px solid var(--surface-control-border) ;
+  min-width: 32px;
+  min-height: 32px;
+  text-transform: none;
+  overflow: visible;
+  font-family: inherit;
+  border-radius: 0;
+  padding: 10px;
+  margin: 0;
+
+  display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.control__button-text {
+  line-height: 1.3;
+}
+
+.controls li + li .controls__button {
+  border-left: none;
+}
+
+.controls__button:hover {
+  cursor: pointer;
+  background-color: var(--surface-control-hover);
+  color: black;
+} 
