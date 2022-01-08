@@ -23,7 +23,7 @@ body {
 }
 
 .sidebar[open] {
-  width: clamp(250px, 22vw, 450px);
+  width: clamp(200px, 18vw, 350px);
 }
 
 .sidebar textarea {

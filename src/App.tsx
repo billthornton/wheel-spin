@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { IconDownload } from '@tabler/icons';
-import { downloadAsPng, downloadAsSvg } from './export';
+import { downloadAsPng, downloadAsSvgSlow } from './export';
 
 import './App.css';
 
@@ -32,7 +32,7 @@ function Controls() {
   return (
     <ul className="controls">
       <li>
-        <Control title="Download as SVG" onClick={downloadAsSvg}>
+        <Control title="Download as SVG" onClick={downloadAsSvgSlow()}>
           <IconDownload size="18" /> <span className="control__button-text">SVG</span>
         </Control>
       </li>
@@ -49,21 +49,6 @@ const polarToCartesian = (x: number, y: number, r: number, degrees: number): [nu
   const radians = (degrees * Math.PI) / 180.0;
   return [x + r * Math.cos(radians), y + r * Math.sin(radians)];
 };
-
-interface SegmentEntry {
-  title: string;
-  index: number;
-  fill: string;
-  start: number;
-  end: number;
-}
-
-interface SegmentProps {
-  entry: SegmentEntry;
-  center: number;
-  radius: number;
-  radiusWidth: number;
-}
 
 // const COLOURS = ['red', 'yellow', 'grey', 'blue', 'indigo', 'green', 'black'];
 const COLOURS = [
@@ -84,7 +69,23 @@ const COLOURS = [
   '#0c4767'
 ];
 
-function Segment({ entry: { start, end, title, fill }, center, radius, radiusWidth }: SegmentProps) {
+interface SegmentEntry {
+  title: string;
+  index: number;
+  fill: string;
+  start: number;
+  end: number;
+}
+
+interface SegmentProps {
+  isWinner: boolean;
+  entry: SegmentEntry;
+  center: number;
+  radius: number;
+  radiusWidth: number;
+}
+
+function Segment({ isWinner, entry: { start, end, title, fill }, center, radius, radiusWidth }: SegmentProps) {
   // https://svgwg.org/specs/paths/#PathDataEllipticalArcCommands
   const arc = Math.abs(start - end) > 180 ? 1 : 0;
 
@@ -112,7 +113,7 @@ function Segment({ entry: { start, end, title, fill }, center, radius, radiusWid
 
   return (
     <g>
-      <path d={path} style={{ fill, stroke: 'none' }} />
+      <path d={path} style={{ fill, strokeWidth: '10', stroke: isWinner ? 'red' : 'none' }} />
       <g transform={`translate(${center}, ${center})`}>
         <g transform={`rotate(${start + (end - start) / 2})`}>
           <foreignObject x="64" y="-50" width={204 - 64} height="100">
@@ -143,14 +144,17 @@ function Segment({ entry: { start, end, title, fill }, center, radius, radiusWid
 //   return angle;
 // };
 
-function Wheel({
-  value,
-  svgElementRef
-}: {
+interface WheelProps {
   value: string;
   svgElementRef: React.MutableRefObject<SVGSVGElement | null>;
-}) {
+  // eslint-disable-next-line no-unused-vars
+  onWheelChange: (isSpinning: boolean) => void;
+}
+
+function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
   const svgGroupRef = useRef<SVGSVGElement>(null);
+  const [winner, setWinner] = useState<SegmentEntry | null>(null);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   const rawLines = value
     .split('\n')
@@ -172,7 +176,7 @@ function Wheel({
   const entries: SegmentEntry[] = lines.map((title, index) => {
     const start = degrees * index;
     const end = degrees * (index + 1);
-    const fill = COLOURS[index];
+    const fill = COLOURS[index % COLOURS.length];
 
     return { title, start, end, index, fill };
   });
@@ -180,7 +184,11 @@ function Wheel({
   const onClick = () => {
     const svgEl = svgGroupRef.current;
 
-    if (svgEl) {
+    if (svgEl && !isSpinning) {
+      setIsSpinning(true);
+      onWheelChange(true);
+      setWinner(null);
+
       const intervalStep = 1.05;
       let rotation = Math.floor(Math.random() * 359);
       let interval = 0.005;
@@ -214,16 +222,18 @@ function Wheel({
           window.requestAnimationFrame(step);
         } else {
           clearInterval(decelerationInterval);
+          setIsSpinning(false);
+          onWheelChange(false);
           const adjustedRotation = 360 - rotation;
           // TODO: Need to verify how this works at the boundaries!!!
-          const winner = entries.find(({ start, end }) => adjustedRotation >= start && adjustedRotation < end);
+          const winningEntry = entries.find(({ start, end }) => adjustedRotation >= start && adjustedRotation < end);
 
-          if (winner) {
-            // eslint-disable-next-line no-alert
-            alert(winner.title);
+          console.log({ adjustedRotation, rotation, winningEntry, entries });
+
+          if (!winningEntry) {
+            console.error('Failed to determine winner!');
           } else {
-            // eslint-disable-next-line no-alert
-            alert('No winner found!');
+            setWinner(winningEntry);
           }
         }
       };
@@ -234,8 +244,10 @@ function Wheel({
 
   const pointSize = 16;
 
+  const nonWinningEntries = entries.filter((entry) => winner?.index !== entry.index);
+
   return (
-    <div className="wheel-wrapper">
+    <div className="wheel-wrapper" style={{ cursor: isSpinning ? 'wait' : 'grab' }}>
       <svg
         className="wheel"
         onClick={onClick}
@@ -245,9 +257,27 @@ function Wheel({
         viewBox={`0 0 ${svgSize} ${svgSize}`}
       >
         <g className="wheel__circle" ref={svgGroupRef}>
-          {entries.map((entry) => (
-            <Segment key={entry.title} entry={entry} center={center} radius={radius} radiusWidth={radiusWidth} />
+          {nonWinningEntries.map((entry) => (
+            // console.log({ isWinner: winner?.index === entry?.index, winner, entry });
+            <Segment
+              isWinner={false}
+              key={entry.index}
+              entry={entry}
+              center={center}
+              radius={radius}
+              radiusWidth={radiusWidth}
+            />
           ))}
+          {winner && (
+            <Segment
+              isWinner
+              key={winner.index}
+              entry={winner}
+              center={center}
+              radius={radius + 20}
+              radiusWidth={radiusWidth}
+            />
+          )}
         </g>
         <g transform={`translate(${center}, ${center})`}>
           <circle r={radiusWidth} fill="pink" />
@@ -266,7 +296,18 @@ function Wheel({
   );
 }
 
-function Sidebar({ value, onChange }: { value: string; onChange: any }) {
+function Sidebar({
+  value,
+  onChange,
+  isOpen,
+  handleClick
+}: {
+  value: string;
+  onChange: any;
+  isOpen: boolean;
+  // eslint-disable-next-line no-unused-vars
+  handleClick: (e: unknown) => void;
+}) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleChange = (e: any) => {
@@ -280,10 +321,10 @@ function Sidebar({ value, onChange }: { value: string; onChange: any }) {
   };
 
   return (
-    <details className="sidebar" open onToggle={handleToggle}>
+    <details className="sidebar" open={isOpen} onToggle={handleToggle}>
       <textarea ref={textAreaRef} className="" value={value} onChange={handleChange} />
 
-      <summary>
+      <summary onClick={handleClick}>
         <b className="summary-text">&#10095;</b>
       </summary>
     </details>
@@ -296,6 +337,7 @@ function App() {
   const [value, setValue] = useState(decodedValueFromParams || initValue);
 
   const svgElementRef = useRef<SVGSVGElement | null>(null);
+  const [sidebarOpen, setSidebarOpenState] = useState(true);
 
   const updateWithNewValue = (newValue: string) => {
     const searchParams = new URLSearchParams(document.location.search);
@@ -305,10 +347,21 @@ function App() {
     setValue(newValue);
   };
 
+  const onSidebarClick = (e: any) => {
+    e.preventDefault();
+    setSidebarOpenState(!sidebarOpen);
+  };
+
+  const onWheelChange = (isSpinning: boolean) => {
+    if (isSpinning) {
+      setSidebarOpenState(false);
+    }
+  };
+
   return (
     <>
-      <Sidebar value={value} onChange={updateWithNewValue} />
-      <Wheel value={value} svgElementRef={svgElementRef} />
+      <Sidebar isOpen={sidebarOpen} handleClick={onSidebarClick} value={value} onChange={updateWithNewValue} />
+      <Wheel onWheelChange={onWheelChange} value={value} svgElementRef={svgElementRef} />
       <Controls />
     </>
   );
