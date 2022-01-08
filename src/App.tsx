@@ -144,7 +144,7 @@ function Segment({
 
   return (
     <g>
-      <path d={path} style={{ fill, strokeWidth: '10', stroke: isWinner ? 'white' : 'none' }} />
+      <path d={path} style={{ fill, strokeWidth: '4', stroke: isWinner ? 'white' : 'none' }} />
       <g transform={`translate(${center}, ${center})`}>
         <g transform={`rotate(${textRotation})`}>
           <foreignObject x="64" y="-50" width={204 - 64} height="100">
@@ -348,7 +348,7 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
                 key={winner.index}
                 entry={winner}
                 center={center}
-                radius={radius + 20}
+                radius={radius + 10}
                 radiusWidth={radiusWidth}
               />
             )}
