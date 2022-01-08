@@ -264,12 +264,13 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
           return;
         }
 
-        const adjustment = timeDiff / 8;
-
-        const change = baseRotationPerStep * speed * adjustment;
-        rotation += change;
         if (rotation > 360) rotation -= 360;
+
         if (speed > 0) {
+          const adjustment = timeDiff / 8;
+
+          const change = baseRotationPerStep * speed * adjustment;
+          rotation += change;
           svgEl.style.transform = `rotate(${rotation.toFixed(2)}deg)`;
           window.requestAnimationFrame(step);
         } else {
