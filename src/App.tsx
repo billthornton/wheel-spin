@@ -253,8 +253,8 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
         onClick={onClick}
         ref={svgElementRef}
         height={svgSize}
-        width={svgSize}
-        viewBox={`0 0 ${svgSize} ${svgSize}`}
+        width={svgSize + 30}
+        viewBox={`0 0 ${svgSize + 30} ${svgSize}`}
       >
         <g className="wheel__circle" ref={svgGroupRef}>
           {nonWinningEntries.map((entry) => (
