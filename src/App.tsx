@@ -81,15 +81,32 @@ interface SegmentProps {
   // eslint-disable-next-line no-unused-vars
   handleDeleteBtn: (event: any) => void;
   isWinner: boolean;
+  // eslint-disable-next-line react/require-default-props
+  finalRotation?: number | null;
   entry: SegmentEntry;
   center: number;
   radius: number;
   radiusWidth: number;
 }
 
+// Prevent it going off screen
+const getAdjustedDeleteButtonRotation = (textRotation: number, wheelRotation: number): number => {
+  const totalRotation = (textRotation + wheelRotation) % 360;
+
+  console.log({ totalRotation, textRotation, wheelRotation });
+
+  // This is some real confusing logic
+  if (totalRotation >= 180 && totalRotation < 360 - 30) return 360 - 30 - wheelRotation;
+  // '25' and other parts about this are just fudged until it works
+  if (totalRotation > 45 && totalRotation < 180) return textRotation - (totalRotation - 25);
+
+  return textRotation;
+};
+
 function Segment({
   handleDeleteBtn,
   isWinner,
+  finalRotation = null,
   entry: { start, end, title, fill },
   center,
   radius,
@@ -120,11 +137,16 @@ function Segment({
     return '14px';
   };
 
+  const textRotation = start + (end - start) / 2;
+  const deleteRotation = finalRotation !== null ? getAdjustedDeleteButtonRotation(textRotation, finalRotation) : 0;
+
+  // console.log({ deleteRotation });
+
   return (
     <g>
       <path d={path} style={{ fill, strokeWidth: '10', stroke: isWinner ? 'white' : 'none' }} />
       <g transform={`translate(${center}, ${center})`}>
-        <g transform={`rotate(${start + (end - start) / 2})`}>
+        <g transform={`rotate(${textRotation})`}>
           <foreignObject x="64" y="-50" width={204 - 64} height="100">
             <div className="wheel__text">
               <span style={{ fontSize: getNaiveFontSize() }}>{title}</span>
@@ -132,7 +154,7 @@ function Segment({
           </foreignObject>
         </g>
         {isWinner && (
-          <g transform={`rotate(${start + (end - start) / 2})`}>
+          <g transform={`rotate(${deleteRotation})`}>
             <foreignObject x="244" y="-50" width={204 - 64} height="100">
               <div className="wheel__text">
                 <button onClick={handleDeleteBtn} type="button" className="wheel__delete-btn">
@@ -179,6 +201,7 @@ interface WheelProps {
 function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinner }: WheelProps) {
   const svgGroupRef = useRef<SVGSVGElement>(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [finalRotation, setFinalRotation] = useState<number | null>(null);
 
   const rawLines = value
     .split('\n')
@@ -265,13 +288,14 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
             console.error('Failed to determine winner!');
           } else {
             setWinner(winningEntry);
+            setFinalRotation(rotation); // or is it adjusted rotation?
           }
         }
       };
 
       window.requestAnimationFrame(step);
     }
-  }, [isSpinning, onWheelChange]);
+  }, [isSpinning, onWheelChange, setFinalRotation, setWinner]);
 
   if (lines.length < 2) return null;
 
@@ -299,10 +323,10 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
         onClick={onClick}
         ref={svgElementRef}
         height={svgSize}
-        width={svgSize + center}
-        viewBox={`0 0 ${svgSize + center} ${svgSize}`}
+        width={svgSize}
+        viewBox={`0 0 ${svgSize * 1.75} ${svgSize}`}
       >
-        <g className="wheel__circle-container" transform="translate(100, 0)">
+        <g className="wheel__circle-container" transform="translate(150, 0)">
           <g className="wheel__circle" ref={svgGroupRef}>
             {nonWinningEntries.map((entry) => (
               // console.log({ isWinner: winner?.index === entry?.index, winner, entry });
@@ -320,6 +344,7 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
               <Segment
                 handleDeleteBtn={handleDeleteBtn(winner)}
                 isWinner
+                finalRotation={finalRotation}
                 key={winner.index}
                 entry={winner}
                 center={center}
