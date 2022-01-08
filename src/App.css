@@ -84,6 +84,17 @@ body {
   max-height: 90vh;
 }
 
+.wheel__delete-btn {
+  border-radius: 8px;
+  appearance: none;
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.2);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
 .wheel__circle {
   transform-origin: 204px center;
 }

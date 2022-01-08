@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { IconDownload } from '@tabler/icons';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { IconDownload, IconTrash } from '@tabler/icons';
 import { downloadAsPng, downloadAsSvgSlow } from './export';
 
 import './App.css';
@@ -78,6 +78,8 @@ interface SegmentEntry {
 }
 
 interface SegmentProps {
+  // eslint-disable-next-line no-unused-vars
+  handleDeleteBtn: (event: any) => void;
   isWinner: boolean;
   entry: SegmentEntry;
   center: number;
@@ -85,7 +87,14 @@ interface SegmentProps {
   radiusWidth: number;
 }
 
-function Segment({ isWinner, entry: { start, end, title, fill }, center, radius, radiusWidth }: SegmentProps) {
+function Segment({
+  handleDeleteBtn,
+  isWinner,
+  entry: { start, end, title, fill },
+  center,
+  radius,
+  radiusWidth
+}: SegmentProps) {
   // https://svgwg.org/specs/paths/#PathDataEllipticalArcCommands
   const arc = Math.abs(start - end) > 180 ? 1 : 0;
 
@@ -113,7 +122,7 @@ function Segment({ isWinner, entry: { start, end, title, fill }, center, radius,
 
   return (
     <g>
-      <path d={path} style={{ fill, strokeWidth: '10', stroke: isWinner ? 'red' : 'none' }} />
+      <path d={path} style={{ fill, strokeWidth: '10', stroke: isWinner ? 'white' : 'none' }} />
       <g transform={`translate(${center}, ${center})`}>
         <g transform={`rotate(${start + (end - start) / 2})`}>
           <foreignObject x="64" y="-50" width={204 - 64} height="100">
@@ -122,6 +131,17 @@ function Segment({ isWinner, entry: { start, end, title, fill }, center, radius,
             </div>
           </foreignObject>
         </g>
+        {isWinner && (
+          <g transform={`rotate(${start + (end - start) / 2})`}>
+            <foreignObject x="244" y="-50" width={204 - 64} height="100">
+              <div className="wheel__text">
+                <button onClick={handleDeleteBtn} type="button" className="wheel__delete-btn">
+                  <IconTrash size="58" />
+                </button>
+              </div>
+            </foreignObject>
+          </g>
+        )}
       </g>
     </g>
   );
@@ -146,12 +166,14 @@ function Segment({ isWinner, entry: { start, end, title, fill }, center, radius,
 
 interface WheelProps {
   value: string;
+  // eslint-disable-next-line no-unused-vars
+  setValue: (newValue: string) => void;
   svgElementRef: React.MutableRefObject<SVGSVGElement | null>;
   // eslint-disable-next-line no-unused-vars
   onWheelChange: (isSpinning: boolean) => void;
 }
 
-function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
+function Wheel({ value, setValue, svgElementRef, onWheelChange }: WheelProps) {
   const svgGroupRef = useRef<SVGSVGElement>(null);
   const [winner, setWinner] = useState<SegmentEntry | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -163,8 +185,6 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
     .filter(Boolean);
 
   const lines = rawLines;
-
-  if (lines.length < 2) return null;
 
   const segments = lines.length;
   const radius = 204;
@@ -181,7 +201,14 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
     return { title, start, end, index, fill };
   });
 
-  const onClick = () => {
+  const entriesRef = useRef(entries);
+  // const winnerRef = useRef(winner);
+  useEffect(() => {
+    entriesRef.current = entries;
+    // winnerRef.current = winner;
+  }, [entries, winner]);
+
+  const onClick = useCallback(() => {
     const svgEl = svgGroupRef.current;
 
     if (svgEl && !isSpinning) {
@@ -226,9 +253,11 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
           onWheelChange(false);
           const adjustedRotation = 360 - rotation;
           // TODO: Need to verify how this works at the boundaries!!!
-          const winningEntry = entries.find(({ start, end }) => adjustedRotation >= start && adjustedRotation < end);
+          const winningEntry = entriesRef.current.find(
+            ({ start, end }) => adjustedRotation >= start && adjustedRotation < end
+          );
 
-          console.log({ adjustedRotation, rotation, winningEntry, entries });
+          console.log({ adjustedRotation, rotation, winningEntry, e: entriesRef.current });
 
           if (!winningEntry) {
             console.error('Failed to determine winner!');
@@ -240,11 +269,26 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
 
       window.requestAnimationFrame(step);
     }
-  };
+  }, [isSpinning, onWheelChange]);
+
+  if (lines.length < 2) return null;
 
   const pointSize = 16;
 
   const nonWinningEntries = entries.filter((entry) => winner?.index !== entry.index);
+
+  const handleDeleteBtn = (entry: SegmentEntry) => (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setWinner(null);
+    const newValue = value
+      .split('\n')
+      .map((a) => a.trim())
+      .filter((a) => a !== entry.title)
+      .join('\n');
+    setValue(newValue);
+  };
 
   return (
     <div className="wheel-wrapper" style={{ cursor: isSpinning ? 'wait' : 'grab' }}>
@@ -253,42 +297,46 @@ function Wheel({ value, svgElementRef, onWheelChange }: WheelProps) {
         onClick={onClick}
         ref={svgElementRef}
         height={svgSize}
-        width={svgSize + 30}
-        viewBox={`0 0 ${svgSize + 30} ${svgSize}`}
+        width={svgSize + center}
+        viewBox={`0 0 ${svgSize + center} ${svgSize}`}
       >
-        <g className="wheel__circle" ref={svgGroupRef}>
-          {nonWinningEntries.map((entry) => (
-            // console.log({ isWinner: winner?.index === entry?.index, winner, entry });
-            <Segment
-              isWinner={false}
-              key={entry.index}
-              entry={entry}
-              center={center}
-              radius={radius}
-              radiusWidth={radiusWidth}
-            />
-          ))}
-          {winner && (
-            <Segment
-              isWinner
-              key={winner.index}
-              entry={winner}
-              center={center}
-              radius={radius + 20}
-              radiusWidth={radiusWidth}
-            />
-          )}
-        </g>
-        <g transform={`translate(${center}, ${center})`}>
-          <circle r={radiusWidth} fill="pink" />
-          <g className="wheel__pointer">
-            <rect
-              x={radiusWidth / 2}
-              y={-radiusWidth / 2 + pointSize / 2}
-              width={pointSize}
-              height={pointSize}
-              fill="pink"
-            />
+        <g className="wheel__circle-container" transform="translate(100, 0)">
+          <g className="wheel__circle" ref={svgGroupRef}>
+            {nonWinningEntries.map((entry) => (
+              // console.log({ isWinner: winner?.index === entry?.index, winner, entry });
+              <Segment
+                handleDeleteBtn={handleDeleteBtn(entry)}
+                isWinner={false}
+                key={entry.index}
+                entry={entry}
+                center={center}
+                radius={radius}
+                radiusWidth={radiusWidth}
+              />
+            ))}
+            {winner && (
+              <Segment
+                handleDeleteBtn={handleDeleteBtn(winner)}
+                isWinner
+                key={winner.index}
+                entry={winner}
+                center={center}
+                radius={radius + 20}
+                radiusWidth={radiusWidth}
+              />
+            )}
+          </g>
+          <g transform={`translate(${center}, ${center})`}>
+            <circle r={radiusWidth} fill="pink" />
+            <g className="wheel__pointer">
+              <rect
+                x={radiusWidth / 2}
+                y={-radiusWidth / 2 + pointSize / 2}
+                width={pointSize}
+                height={pointSize}
+                fill="pink"
+              />
+            </g>
           </g>
         </g>
       </svg>
@@ -361,7 +409,7 @@ function App() {
   return (
     <>
       <Sidebar isOpen={sidebarOpen} handleClick={onSidebarClick} value={value} onChange={updateWithNewValue} />
-      <Wheel onWheelChange={onWheelChange} value={value} svgElementRef={svgElementRef} />
+      <Wheel onWheelChange={onWheelChange} value={value} setValue={updateWithNewValue} svgElementRef={svgElementRef} />
       <Controls />
     </>
   );
