@@ -171,11 +171,13 @@ interface WheelProps {
   svgElementRef: React.MutableRefObject<SVGSVGElement | null>;
   // eslint-disable-next-line no-unused-vars
   onWheelChange: (isSpinning: boolean) => void;
+  winner: SegmentEntry | null;
+  // eslint-disable-next-line no-unused-vars
+  setWinner: (segment: SegmentEntry | null) => void;
 }
 
-function Wheel({ value, setValue, svgElementRef, onWheelChange }: WheelProps) {
+function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinner }: WheelProps) {
   const svgGroupRef = useRef<SVGSVGElement>(null);
-  const [winner, setWinner] = useState<SegmentEntry | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
   const rawLines = value
@@ -383,6 +385,7 @@ function App() {
   const valueFromParams = new URLSearchParams(document.location.search).get('input');
   const decodedValueFromParams = valueFromParams && atob(valueFromParams);
   const [value, setValue] = useState(decodedValueFromParams || initValue);
+  const [winner, setWinner] = useState<SegmentEntry | null>(null);
 
   const svgElementRef = useRef<SVGSVGElement | null>(null);
   const [sidebarOpen, setSidebarOpenState] = useState(true);
@@ -393,6 +396,7 @@ function App() {
     const newRelativePathQuery = `${window.location.pathname}?${searchParams.toString()}`;
     window.history.pushState(null, '', newRelativePathQuery);
     setValue(newValue);
+    setWinner(null);
   };
 
   const onSidebarClick = (e: any) => {
@@ -409,7 +413,14 @@ function App() {
   return (
     <>
       <Sidebar isOpen={sidebarOpen} handleClick={onSidebarClick} value={value} onChange={updateWithNewValue} />
-      <Wheel onWheelChange={onWheelChange} value={value} setValue={updateWithNewValue} svgElementRef={svgElementRef} />
+      <Wheel
+        onWheelChange={onWheelChange}
+        value={value}
+        setValue={updateWithNewValue}
+        svgElementRef={svgElementRef}
+        winner={winner}
+        setWinner={setWinner}
+      />
       <Controls />
     </>
   );
