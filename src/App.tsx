@@ -293,7 +293,7 @@ function Wheel({ value, setValue, svgElementRef, onWheelChange, winner, setWinne
     const newValue = value
       .split('\n')
       .map((a) => a.trim())
-      .filter((a) => a !== entry.title)
+      .map((a) => (a === entry.title ? `#${a}` : a))
       .join('\n');
     setValue(newValue);
   };
