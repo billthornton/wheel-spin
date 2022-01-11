@@ -140,11 +140,9 @@ function Segment({
   const textRotation = start + (end - start) / 2;
   const deleteRotation = finalRotation !== null ? getAdjustedDeleteButtonRotation(textRotation, finalRotation) : 0;
 
-  // console.log({ deleteRotation });
-
   return (
     <g>
-      <path d={path} style={{ fill, strokeWidth: '4', stroke: isWinner ? 'white' : 'none' }} />
+      <path d={path} style={{ fill, strokeWidth: '1', stroke: isWinner ? 'white' : 'none' }} />
       <g transform={`translate(${center}, ${center})`}>
         <g transform={`rotate(${textRotation})`}>
           <foreignObject x="64" y="-50" width={204 - 64} height="100">
@@ -168,23 +166,6 @@ function Segment({
     </g>
   );
 }
-
-// not needed anymore if we control the rotation
-// const getRotation = (element: HTMLElement | SVGElement): number => {
-//   const styles = window.getComputedStyle(element, null);
-//   const matrixTransform = styles.getPropertyValue('transform');
-
-//   const match = matrixTransform.match(/matrix\((?<a>[^,]+), (?<b>[^,]+), .+\)/);
-
-//   if (!match?.groups) {
-//     throw new Error(`failed to parse matrix(): ${matrixTransform}`);
-//   }
-//   const { a, b } = match.groups;
-
-//   const angle = Math.round(Math.atan2(parseFloat(b), parseFloat(a)) * (180 / Math.PI));
-
-//   return angle;
-// };
 
 interface WheelProps {
   value: string;
